@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
+import com.mavennet.album.exception.InvalidJWTTokenException;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -43,13 +45,19 @@ public class JwtTokenUtil {
                 .compact();
     }
     
-    public String getUserNameFromToken(String token) {
-        Claims claims = Jwts.parser()
-                .setSigningKey(jwtSecret)
-                .parseClaimsJws(token)
-                .getBody();
-
-        return claims.getSubject();
+    public String getUserNameFromToken(String token) throws InvalidJWTTokenException {
+    	
+    	String username = null;
+    	
+    	if(validateToken(token)) {
+	        Claims claims = Jwts.parser()
+	                .setSigningKey(jwtSecret)
+	                .parseClaimsJws(token)
+	                .getBody();
+	
+	        username =  claims.getSubject();
+    	}
+    	return username;
     }
     
     public boolean validateToken(String authToken) {
@@ -58,15 +66,19 @@ public class JwtTokenUtil {
             return true;
         } catch (SignatureException ex) {
             logger.error("Invalid JWT signature");
+            throw new InvalidJWTTokenException(ex.getMessage(),ex);
         } catch (MalformedJwtException ex) {
             logger.error("Malformed JWT token");
+            throw new InvalidJWTTokenException(ex.getMessage(),ex);
         } catch (ExpiredJwtException ex) {
             logger.error("Expired JWT token");
+            throw new InvalidJWTTokenException(ex.getMessage(),ex);
         } catch (UnsupportedJwtException ex) {
             logger.error("Unsupported JWT token");
+            throw new InvalidJWTTokenException(ex.getMessage(),ex);
         } catch (IllegalArgumentException ex) {
             logger.error("JWT claims string is empty.");
+            throw new InvalidJWTTokenException(ex.getMessage(),ex);
         }
-        return false;
     }
 }
